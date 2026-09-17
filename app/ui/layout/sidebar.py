@@ -8,7 +8,9 @@ def create_sidebar(current_path: str = "/dashboard", user: Optional[dict] = None
     """
     Standard Desktop Fixed Sidebar (256px width)
     """
-    with ui.left_drawer(value=True).classes("bg-white border-r border-[#E5E7EB] p-0 flex flex-col justify-between select-none").props("width=256") as drawer:
+    with ui.left_drawer(value=None).classes(
+        "bg-white border-r border-[#E5E7EB] p-0 flex flex-col justify-between select-none"
+    ).props("show-if-above width=256 breakpoint=1024") as drawer:
         # Top Section: Brand & Nav
         with ui.column().classes("w-full gap-0"):
             # Brand Header (48px height, 16px padding)

@@ -13,17 +13,17 @@ def register_water_gates_page():
         user_role = user.get("role", "operator")
 
         with app_layout(page_title="Water Gates Control", subtitle="Sluice & Diverter Actuator Management", current_path="/water-gates"):
-            with ui.row().classes("w-full items-center justify-between mb-4"):
+            with ui.row().classes("w-full flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4"):
                 with ui.column().classes("gap-0"):
                     ui.label("Gate Actuation & Safety Interlocks").classes("text-base font-bold text-[#111827]")
                     ui.label("Direct command interface for physical spillway, intake, and diversion motors.").classes("text-xs text-[#6B7280]")
 
                 # Role indicator pill
-                with ui.row().classes("items-center gap-2 bg-white border border-[#E5E7EB] px-3 py-1.5 rounded-md text-xs"):
+                with ui.row().classes("items-center gap-2 bg-white border border-[#E5E7EB] px-3 py-1.5 rounded-md text-xs self-start sm:self-auto"):
                     ui.label("Current Authority:").classes("text-[#6B7280]")
                     ui.label(user_role.upper()).classes("font-bold text-[#2563EB]")
 
-            gates_grid = ui.element("div").classes("w-full grid grid-cols-1 md:grid-cols-2 gap-6 mb-6")
+            gates_grid = ui.element("div").classes("w-full grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6")
 
             async def handle_open(gate_id: str):
                 try:

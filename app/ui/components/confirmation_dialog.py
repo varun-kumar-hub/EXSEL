@@ -13,7 +13,7 @@ def show_confirmation_dialog(
     Standard safety confirmation dialog modal
     Ensures accidental clicks never trigger physical equipment actuation.
     """
-    with ui.dialog() as dialog, ui.card().classes("p-6 max-w-md w-full sw-card shadow-lg bg-white"):
+    with ui.dialog() as dialog, ui.card().classes("p-5 sm:p-6 max-w-md w-[92vw] sm:w-full sw-card shadow-lg bg-white"):
         with ui.row().classes("items-center gap-3 mb-2"):
             icon_name = "warning" if is_danger else "help"
             icon_color = "text-[#DC2626]" if is_danger else "text-[#2563EB]"

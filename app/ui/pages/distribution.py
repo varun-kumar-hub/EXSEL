@@ -14,14 +14,14 @@ def register_distribution_page():
 
         with app_layout(page_title="Sequential Water Distribution", subtitle="Automated Sector Routing Pipeline", current_path="/distribution"):
             # Header Controls
-            with ui.card().classes("sw-card p-6 w-full mb-6"):
-                with ui.row().classes("w-full items-center justify-between"):
+            with ui.card().classes("sw-card p-4 sm:p-6 w-full mb-6"):
+                with ui.row().classes("w-full flex-col sm:flex-row sm:items-center justify-between gap-4"):
                     with ui.column().classes("gap-1"):
-                        ui.label("Intake-to-Sector Automated Sequence").classes("text-lg font-bold text-[#111827]")
+                        ui.label("Intake-to-Sector Automated Sequence").classes("text-base sm:text-lg font-bold text-[#111827]")
                         ui.label("Coordinates sequential pump priming, gate routing, and pipeline pressurization.").classes("text-xs text-[#6B7280]")
 
                     # Action buttons
-                    with ui.row().classes("items-center gap-3"):
+                    with ui.row().classes("items-center gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap"):
                         async def handle_start():
                             try:
                                 await distribution_service.start_sequence(user_role, user.get("full_name"))
@@ -40,17 +40,17 @@ def register_distribution_page():
 
                         can_exec = permissions.can_execute_distribution(user_role)
                         start_btn = ui.button("START SEQUENCE", icon="play_arrow", on_click=handle_start).classes(
-                            "sw-btn-primary px-5 py-2 text-xs font-bold"
+                            "sw-btn-primary flex-1 sm:flex-none px-4 sm:px-5 py-2 text-xs font-bold"
                         )
                         stop_btn = ui.button("EMERGENCY STOP", icon="stop", on_click=handle_stop).classes(
-                            "sw-btn-danger px-5 py-2 text-xs font-bold"
+                            "sw-btn-danger flex-1 sm:flex-none px-4 sm:px-5 py-2 text-xs font-bold"
                         )
                         if not can_exec:
                             start_btn.props("disable")
                             stop_btn.props("disable")
 
             # Sequence Flow Diagram Card
-            flow_container = ui.card().classes("sw-card p-6 w-full mb-6")
+            flow_container = ui.card().classes("sw-card p-4 sm:p-6 w-full mb-6")
 
             async def refresh_sequence():
                 seq = await distribution_service.get_status()

@@ -265,3 +265,4 @@ VALUES
     ('gate_telemetry', 'info', 'Gate 04 Manual Mode Engaged', 'Operator switched Gate 04 to manual inspection mode.', true, NOW() - INTERVAL '3 hours'),
     ('system_online', 'info', 'System Telemetry Online', 'All 5 sensor nodes and 4 water gate controllers reporting nominal heartbeat.', true, NOW() - INTERVAL '5 hours')
 ON CONFLICT DO NOTHING;
+

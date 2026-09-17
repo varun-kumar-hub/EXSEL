@@ -7,25 +7,26 @@ def create_header(page_title: str, subtitle: str = "System Overview", sidebar_dr
     """
     Standard Top Header (64px height)
     """
-    with ui.header().classes("bg-white text-[#111827] border-b border-[#E5E7EB] h-16 px-6 flex items-center justify-between z-20 shadow-none"):
+    with ui.header().classes("bg-white text-[#111827] border-b border-[#E5E7EB] h-16 px-3 sm:px-6 flex items-center justify-between z-20 shadow-none"):
         # Left Section: Hamburger + Title
-        with ui.row().classes("items-center gap-3"):
+        with ui.row().classes("items-center gap-2 sm:gap-3 min-w-0"):
             if sidebar_drawer:
                 ui.button(
                     icon="menu",
                     on_click=sidebar_drawer.toggle,
                 ).classes("lg:hidden text-[#4B5563]").props("flat round dense")
 
-            with ui.column().classes("gap-0"):
-                ui.label(page_title).classes("text-lg font-bold text-[#111827] leading-tight")
-                ui.label(subtitle).classes("text-xs text-[#6B7280]")
+            with ui.column().classes("gap-0 min-w-0"):
+                ui.label(page_title).classes("text-base sm:text-lg font-bold text-[#111827] leading-tight truncate max-w-[170px] sm:max-w-[280px] md:max-w-none")
+                ui.label(subtitle).classes("hidden sm:block text-xs text-[#6B7280] truncate max-w-[280px] md:max-w-none")
 
         # Right Section: Status Indicator + Clock + Notifications + Profile
-        with ui.row().classes("items-center gap-4"):
+        with ui.row().classes("items-center gap-2 sm:gap-4 shrink-0"):
             # Realtime Status indicator
-            with ui.row().classes("items-center gap-2 bg-[#F0FDF4] border border-[#BBF7D0] px-3 py-1 rounded-full text-xs font-medium text-[#15803D]"):
+            with ui.row().classes("items-center gap-1.5 bg-[#F0FDF4] border border-[#BBF7D0] px-2 sm:px-3 py-1 rounded-full text-xs font-medium text-[#15803D]"):
                 ui.element("span").classes("w-2 h-2 rounded-full bg-[#10B981] status-pulse")
-                ui.label("System Online").classes("font-semibold")
+                ui.label("Online").classes("font-semibold sm:hidden")
+                ui.label("System Online").classes("hidden sm:inline font-semibold")
 
             # Realtime clock label
             clock_label = ui.label(f"Last updated: {datetime.utcnow().strftime('%I:%M:%S %p')}").classes(

@@ -21,11 +21,11 @@ def register_sensors_page():
                 sensor = await sensor_service.get_sensor(sensor_id)
                 history = await sensor_service.get_sensor_history(sensor_id)
 
-                with ui.dialog() as dialog, ui.card().classes("p-6 max-w-2xl w-full sw-card shadow-xl bg-white"):
+                with ui.dialog() as dialog, ui.card().classes("p-4 sm:p-6 max-w-2xl w-[94vw] sm:w-full sw-card shadow-xl bg-white"):
                     with ui.row().classes("w-full items-center justify-between mb-3"):
-                        with ui.row().classes("items-center gap-2"):
+                        with ui.row().classes("items-center gap-2 min-w-0"):
                             ui.icon("show_chart").classes("text-[#2563EB] text-xl")
-                            ui.label(f"{sensor.name} — Telemetry History").classes("text-base font-bold text-[#111827]")
+                            ui.label(f"{sensor.name} — Telemetry History").classes("text-sm sm:text-base font-bold text-[#111827] truncate")
                         ui.button(icon="close", on_click=dialog.close).props("flat round dense")
 
                     fig = create_plotly_figure(
@@ -37,7 +37,7 @@ def register_sensors_page():
                     )
                     ui.plotly(fig).classes("w-full")
 
-                    with ui.row().classes("w-full justify-between text-xs text-[#6B7280] mt-3 border-t pt-2"):
+                    with ui.row().classes("w-full flex-col sm:flex-row justify-between text-xs text-[#6B7280] mt-3 border-t pt-2 gap-1"):
                         ui.label(f"Min Threshold: {sensor.minimum_threshold} {sensor.unit}")
                         ui.label(f"Max Threshold: {sensor.maximum_threshold} {sensor.unit}")
                         ui.label(f"Current: {sensor.last_reading:.1f} {sensor.unit}").classes("font-bold text-[#111827]")

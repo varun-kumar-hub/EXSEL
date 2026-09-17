@@ -29,3 +29,4 @@ venv/
 ENV/
 logs/*.log
 !logs/.gitkeep
+.nicegui/

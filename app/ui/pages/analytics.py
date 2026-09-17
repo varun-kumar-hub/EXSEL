@@ -13,15 +13,15 @@ def register_analytics_page():
 
         with app_layout(page_title="Hydraulic Analytics", subtitle="Long-term Trends & Resource Optimization", current_path="/analytics"):
             # Header with Date Filter Toolbar
-            with ui.row().classes("w-full items-center justify-between mb-6"):
+            with ui.row().classes("w-full flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6"):
                 with ui.column().classes("gap-0"):
                     ui.label("Performance Analytics & Water Conservation").classes("text-base font-bold text-[#111827]")
                     ui.label("Statistical modeling computed via Pandas and NumPy aggregation engines.").classes("text-xs text-[#6B7280]")
 
                 # Filter buttons
-                filter_row = ui.row().classes("items-center gap-1 bg-white border border-[#E5E7EB] p-1 rounded-md")
+                filter_row = ui.row().classes("items-center gap-1 bg-white border border-[#E5E7EB] p-1 rounded-md self-start sm:self-auto")
 
-            kpi_container = ui.element("div").classes("w-full grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6")
+            kpi_container = ui.element("div").classes("w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6")
             charts_container = ui.element("div").classes("w-full grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6")
 
             async def load_analytics(date_filter: str):

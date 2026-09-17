@@ -97,10 +97,10 @@ def create_chart_card(
     """
     with ui.card().classes("sw-card p-5 w-full") as card:
         # Header + Range Switchers
-        with ui.row().classes("w-full items-center justify-between mb-3"):
+        with ui.row().classes("w-full flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3"):
             ui.label(title).classes("text-sm font-semibold text-[#111827]")
 
-            with ui.row().classes("items-center gap-1 bg-[#F3F4F6] p-0.5 rounded-md"):
+            with ui.row().classes("items-center gap-1 bg-[#F3F4F6] p-0.5 rounded-md self-start sm:self-auto"):
                 for r in ["1H", "6H", "24H", "7D"]:
                     is_active = (r == active_range)
                     btn_cls = "bg-white text-[#2563EB] shadow-xs font-semibold" if is_active else "text-[#6B7280] hover:text-[#111827]"

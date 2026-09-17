@@ -10,7 +10,7 @@ def register_login_page():
         ui.add_head_html(f"<style>{GLOBAL_CSS}</style>")
 
         with ui.column().classes("w-full min-h-screen items-center justify-center bg-[#F7F8FA] p-4"):
-            with ui.card().classes("sw-card p-8 max-w-md w-full shadow-md bg-white"):
+            with ui.card().classes("sw-card p-6 sm:p-8 max-w-md w-full shadow-md bg-white"):
                 # Header Logo
                 with ui.column().classes("w-full items-center mb-6 text-center"):
                     with ui.element("div").classes("w-12 h-12 rounded-xl bg-[#2563EB] flex items-center justify-center text-white mb-3"):
