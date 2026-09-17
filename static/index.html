@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Water Distribution & Sequential Control System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js for reliable, lightweight, responsive charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bgPrimary: '#F7F8FA',
+            surface: '#FFFFFF',
+            textMain: '#111827',
+            textMuted: '#6B7280',
+            borderLight: '#E5E7EB',
+            primaryBlue: '#2563EB',
+            primaryHover: '#1D4ED8',
+            waterTeal: '#06B6D4',
+            statusGreen: '#10B981',
+            statusAmber: '#F59E0B',
+            statusRed: '#DC2626',
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #F7F8FA;
+      color: #111827;
+      margin: 0;
+      padding: 0;
+    }
+    .sw-card {
+      background-color: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    @keyframes pulse-ring {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.1); }
+    }
+    .status-pulse {
+      animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #F7F8FA; }
+    ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+  <!-- TOP HEADER (64px) -->
+  <header class="h-16 bg-white border-b border-borderLight px-4 lg:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+    <!-- Left: Hamburger + Title -->
+    <div class="flex items-center gap-3">
+      <button id="mobileMenuBtn" class="lg:hidden text-textMuted hover:text-textMain p-1 rounded-md">
+        <i data-lucide="menu" class="w-6 h-6"></i>
+      </button>
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-primaryBlue flex items-center justify-center text-white">
+          <i data-lucide="droplet" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-textMain leading-tight" id="headerTitle">Smart Water Distribution</h1>
+          <p class="text-[11px] text-textMuted leading-none" id="headerSubtitle">System Overview & Telemetry</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Status Indicator + Clock + Notifications + Profile -->
+    <div class="flex items-center gap-3 md:gap-5">
+      <!-- Status Badge -->
+      <div class="flex items-center gap-2 bg-[#F0FDF4] border border-[#BBF7D0] px-3 py-1 rounded-full text-xs font-semibold text-[#15803D]">
+        <span class="w-2 h-2 rounded-full bg-statusGreen status-pulse"></span>
+        <span class="hidden sm:inline">System Online</span>
+      </div>
+
+      <!-- Live Clock -->
+      <div class="hidden md:block text-xs text-textMuted font-mono" id="liveClock">--:--:--</div>
+
+      <!-- Notifications Bell -->
+      <div class="relative">
+        <button id="notifBtn" class="text-textMuted hover:text-textMain p-1.5 rounded-full relative">
+          <i data-lucide="bell" class="w-5 h-5"></i>
+          <span class="absolute top-1 right-1 w-2 h-2 bg-statusRed rounded-full"></span>
+        </button>
+      </div>
+
+      <!-- User Profile Pill -->
+      <div class="flex items-center gap-2.5 pl-2 border-l border-borderLight cursor-pointer" onclick="switchTab('settings')">
+        <div id="userAvatar" class="w-8 h-8 rounded-full bg-[#EBF8FF] text-primaryBlue font-bold text-xs flex items-center justify-center border border-[#BFDBFE]">
+          AD
+        </div>
+        <div class="hidden sm:block text-left">
+          <p id="userName" class="text-xs font-bold text-textMain leading-tight">Chief Operator</p>
+          <span id="userRoleBadge" class="text-[10px] font-semibold text-primaryBlue bg-[#EFF6FF] px-1.5 py-0.5 rounded uppercase">OPERATOR</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- BODY LAYOUT: SIDEBAR + MAIN CONTENT -->
+  <div class="flex flex-1 w-full relative">
+
+    <!-- DESKTOP FIXED SIDEBAR (256px) -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 top-16 w-64 bg-white border-r border-borderLight flex flex-col justify-between z-20 transition-transform duration-200 transform -translate-x-full lg:translate-x-0">
+      <div class="py-4 px-3 flex flex-col gap-1">
+        <p class="text-[10px] font-bold text-[#9CA3AF] px-3 py-1 tracking-wider uppercase">OPERATIONS</p>
+
+        <button onclick="switchTab('dashboard')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors w-full text-left active-nav" data-tab="dashboard">
+          <i data-lucide="layout-dashboard" class="w-4 h-4 text-primaryBlue"></i>
+          <span>Dashboard</span>
+        </button>
+
+        <button onclick="switchTab('water-gates')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-[#4B5563] hover:bg-[#F9FAFB] transition-colors w-full text-left" data-tab="water-gates">
+          <i data-lucide="door-closed" class="w-4 h-4 text-textMuted"></i>
+          <span>Water Gates</span>
+        </button>
+
+        <button onclick="switchTab('distribution')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-[#4B5563] hover:bg-[#F9FAFB] transition-colors w-full text-left" data-tab="distribution">
+          <i data-lucide="git-branch" class="w-4 h-4 text-textMuted"></i>
+          <span>Distribution</span>
+        </button>
+
+        <button onclick="switchTab('sensors')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-[#4B5563] hover:bg-[#F9FAFB] transition-colors w-full text-left" data-tab="sensors">
+          <i data-lucide="activity" class="w-4 h-4 text-textMuted"></i>
+          <span>Sensors</span>
+        </button>
+
+        <button onclick="switchTab('analytics')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-[#4B5563] hover:bg-[#F9FAFB] transition-colors w-full text-left" data-tab="analytics">
+          <i data-lucide="bar-chart-2" class="w-4 h-4 text-textMuted"></i>
+          <span>Analytics</span>
+        </button>
+
+        <button onclick="switchTab('history')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-[#4B5563] hover:bg-[#F9FAFB] transition-colors w-full text-left" data-tab="history">
+          <i data-lucide="history" class="w-4 h-4 text-textMuted"></i>
+          <span>History Log</span>
+        </button>
+
+        <hr class="my-3 border-borderLight">
+
+        <p class="text-[10px] font-bold text-[#9CA3AF] px-3 py-1 tracking-wider uppercase">SYSTEM</p>
+
+        <button onclick="switchTab('settings')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-[#4B5563] hover:bg-[#F9FAFB] transition-colors w-full text-left" data-tab="settings">
+          <i data-lucide="settings" class="w-4 h-4 text-textMuted"></i>
+          <span>Settings</span>
+        </button>
+
+        <a href="/docs" target="_blank" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-[#4B5563] hover:bg-[#F9FAFB] transition-colors w-full text-left">
+          <i data-lucide="file-code" class="w-4 h-4 text-textMuted"></i>
+          <span>API Docs (Swagger)</span>
+        </a>
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div class="p-4 border-t border-borderLight bg-[#FAFAFA]">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-statusGreen"></span>
+            <span class="text-xs text-textMuted font-mono">Sim V1.0</span>
+          </div>
+          <button onclick="openLoginModal()" class="text-xs text-statusRed font-semibold hover:underline">
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- SIDEBAR BACKDROP (Mobile) -->
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-black/30 z-10 hidden lg:hidden" onclick="toggleMobileMenu()"></div>
+
+    <!-- MAIN CONTENT VIEWPORT (Offset by 256px on desktop) -->
+    <main class="flex-1 lg:ml-64 p-4 md:p-8 max-w-7xl w-full mx-auto pb-24 lg:pb-8">
+
+      <!-- ============================================================= -->
+      <!-- 1. DASHBOARD VIEW -->
+      <!-- ============================================================= -->
+      <section id="view-dashboard" class="tab-view space-y-6">
+
+        <!-- 4 SUMMARY METRIC CARDS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Card 1: Water Level -->
+          <div class="sw-card p-5 flex flex-col justify-between min-h-[140px]">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-textMuted uppercase tracking-wider">Water Level</span>
+              <span id="card-wl-badge" class="px-2 py-0.5 rounded-full text-xs font-medium bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC]">Normal</span>
+            </div>
+            <div class="my-2">
+              <div class="flex items-baseline gap-1">
+                <span id="card-wl-val" class="text-3xl font-bold text-textMain tracking-tight">72.4</span>
+                <span class="text-sm font-semibold text-textMuted">%</span>
+              </div>
+              <div class="w-full bg-[#E5E7EB] h-1.5 rounded-full overflow-hidden mt-2">
+                <div id="card-wl-bar" class="h-full bg-statusGreen rounded-full transition-all duration-500" style="width: 72.4%;"></div>
+              </div>
+            </div>
+            <span class="text-[11px] text-[#9CA3AF]">Updated 10 sec ago</span>
+          </div>
+
+          <!-- Card 2: Flow Rate -->
+          <div class="sw-card p-5 flex flex-col justify-between min-h-[140px]">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-textMuted uppercase tracking-wider">Flow Rate</span>
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-[#EFF6FF] text-primaryBlue border border-[#BFDBFE]">Current flow</span>
+            </div>
+            <div class="my-2 flex items-baseline gap-1">
+              <span id="card-fl-val" class="text-3xl font-bold text-textMain tracking-tight">18.4</span>
+              <span class="text-sm font-semibold text-textMuted">L/min</span>
+            </div>
+            <span class="text-[11px] text-[#9CA3AF]">Updated 10 sec ago</span>
+          </div>
+
+          <!-- Card 3: Water Gates -->
+          <div class="sw-card p-5 flex flex-col justify-between min-h-[140px]">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-textMuted uppercase tracking-wider">Water Gates</span>
+              <span id="card-gates-badge" class="px-2 py-0.5 rounded-full text-xs font-medium bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC]">Gates Open</span>
+            </div>
+            <div class="my-2 flex items-baseline gap-1">
+              <span id="card-gates-val" class="text-3xl font-bold text-textMain tracking-tight">3 / 4</span>
+            </div>
+            <span class="text-[11px] text-[#9CA3AF]">Updated 15 sec ago</span>
+          </div>
+
+          <!-- Card 4: Pump Status -->
+          <div class="sw-card p-5 flex flex-col justify-between min-h-[140px]">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-textMuted uppercase tracking-wider">Primary Pump</span>
+              <span id="card-pump-badge" class="px-2 py-0.5 rounded-full text-xs font-medium bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC]">Running</span>
+            </div>
+            <div class="my-2 flex items-baseline gap-1">
+              <span id="card-pump-val" class="text-3xl font-bold text-textMain tracking-tight">ON</span>
+            </div>
+            <span class="text-[11px] text-[#9CA3AF]">Updated 5 sec ago</span>
+          </div>
+        </div>
+
+        <!-- CHARTS + ALERTS ROW (70% Charts, 30% Alerts) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <!-- Charts Column (8 Cols) -->
+          <div class="lg:col-span-8 space-y-6">
+            <!-- Water Level Chart Card -->
+            <div class="sw-card p-5">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="text-sm font-semibold text-textMain">Reservoir Water Level Trend</h3>
+                  <p class="text-xs text-textMuted">Continuous hydraulic fluctuation telemetry</p>
+                </div>
+                <!-- Time Range Tabs -->
+                <div class="inline-flex bg-[#F3F4F6] p-0.5 rounded-md gap-1">
+                  <button onclick="setChartRange('wl', '1H')" class="wl-tab px-2.5 py-1 text-xs rounded font-medium text-textMuted hover:text-textMain">1H</button>
+                  <button onclick="setChartRange('wl', '6H')" class="wl-tab px-2.5 py-1 text-xs rounded font-medium text-textMuted hover:text-textMain">6H</button>
+                  <button onclick="setChartRange('wl', '24H')" class="wl-tab px-2.5 py-1 text-xs rounded font-semibold bg-white text-primaryBlue shadow-xs">24H</button>
+                  <button onclick="setChartRange('wl', '7D')" class="wl-tab px-2.5 py-1 text-xs rounded font-medium text-textMuted hover:text-textMain">7D</button>
+                </div>
+              </div>
+              <div class="h-64 relative">
+                <canvas id="waterLevelChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Flow Rate Chart Card -->
+            <div class="sw-card p-5">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="text-sm font-semibold text-textMain">Main Conduit Flow Rate</h3>
+                  <p class="text-xs text-textMuted">Volumetric discharge velocity in L/min</p>
+                </div>
+                <div class="inline-flex bg-[#F3F4F6] p-0.5 rounded-md gap-1">
+                  <button onclick="setChartRange('fl', '1H')" class="fl-tab px-2.5 py-1 text-xs rounded font-medium text-textMuted hover:text-textMain">1H</button>
+                  <button onclick="setChartRange('fl', '6H')" class="fl-tab px-2.5 py-1 text-xs rounded font-medium text-textMuted hover:text-textMain">6H</button>
+                  <button onclick="setChartRange('fl', '24H')" class="fl-tab px-2.5 py-1 text-xs rounded font-semibold bg-white text-primaryBlue shadow-xs">24H</button>
+                  <button onclick="setChartRange('fl', '7D')" class="fl-tab px-2.5 py-1 text-xs rounded font-medium text-textMuted hover:text-textMain">7D</button>
+                </div>
+              </div>
+              <div class="h-64 relative">
+                <canvas id="flowRateChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Alerts Column (4 Cols) -->
+          <div class="lg:col-span-4 space-y-4">
+            <div class="sw-card p-5">
+              <div class="flex items-center justify-between mb-4 pb-2 border-b border-borderLight">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="alert-triangle" class="w-4 h-4 text-statusAmber"></i>
+                  <h3 class="text-sm font-semibold text-textMain">System Alerts</h3>
+                </div>
+                <button onclick="switchTab('history')" class="text-xs text-primaryBlue font-semibold hover:underline">View All</button>
+              </div>
+
+              <!-- Alerts List Container -->
+              <div id="dashboardAlertsList" class="space-y-3">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <!-- Quick Sequence Pipeline Card -->
+            <div class="sw-card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-textMain">Routing Sequence</h3>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[#EFF6FF] text-primaryBlue">AUTO</span>
+              </div>
+              <p class="text-xs text-textMuted mb-4 leading-relaxed">Automated intake to sector diversion pipeline is currently active.</p>
+              <button onclick="switchTab('distribution')" class="w-full bg-primaryBlue hover:bg-primaryHover text-white py-2 rounded-md text-xs font-semibold flex items-center justify-center gap-2 transition-colors">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                <span>Open Distribution Pipeline</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- GATE STATUS SUMMARY CARDS -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <i data-lucide="sliders" class="w-4 h-4 text-primaryBlue"></i>
+              <h3 class="text-base font-bold text-textMain">Water Gates Status</h3>
+            </div>
+            <button onclick="switchTab('water-gates')" class="text-xs text-primaryBlue font-semibold hover:underline">Full Control Room →</button>
+          </div>
+          <div id="dashboardGatesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- SYSTEM STATISTICS FOOTER -->
+        <div class="sw-card p-5">
+          <p class="text-[11px] font-bold text-textMuted uppercase tracking-wider mb-4">System Telemetry Audit & Reliability</p>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div class="p-3 bg-[#F9FAFB] rounded-lg">
+              <p class="text-xs text-textMuted">Uptime</p>
+              <p class="text-xl font-bold text-statusGreen mt-1">99.8%</p>
+            </div>
+            <div class="p-3 bg-[#F9FAFB] rounded-lg">
+              <p class="text-xs text-textMuted">Avg Water Level</p>
+              <p class="text-xl font-bold text-primaryBlue mt-1">68.2%</p>
+            </div>
+            <div class="p-3 bg-[#F9FAFB] rounded-lg">
+              <p class="text-xs text-textMuted">Total Gate Operations</p>
+              <p class="text-xl font-bold text-textMain mt-1">142</p>
+            </div>
+            <div class="p-3 bg-[#F9FAFB] rounded-lg">
+              <p class="text-xs text-textMuted">Sensors Online</p>
+              <p class="text-xl font-bold text-statusGreen mt-1">5 / 5</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- 2. WATER GATES VIEW -->
+      <!-- ============================================================= -->
+      <section id="view-water-gates" class="tab-view space-y-6 hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-textMain">Water Gate Control Room</h2>
+            <p class="text-xs text-textMuted">Individual servo-actuator controls, mode overrides, and safety interlocks.</p>
+          </div>
+          <div class="flex items-center gap-2 bg-white border border-borderLight px-3 py-1.5 rounded-md text-xs">
+            <span class="text-textMuted">Operator Authority:</span>
+            <span id="gatesAuthorityPill" class="font-bold text-primaryBlue">OPERATOR</span>
+          </div>
+        </div>
+
+        <div id="fullGatesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Injected via JS -->
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- 3. DISTRIBUTION VIEW -->
+      <!-- ============================================================= -->
+      <section id="view-distribution" class="tab-view space-y-6 hidden">
+        <div class="sw-card p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold text-textMain">Sequential Water Distribution Pipeline</h2>
+              <p class="text-xs text-textMuted">Automated intake to sector diversion sequence with interlock state verification.</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button id="btnStartSeq" onclick="triggerSequenceAction('start')" class="bg-primaryBlue hover:bg-primaryHover text-white px-5 py-2.5 rounded-md text-xs font-bold flex items-center gap-2 transition-colors">
+                <i data-lucide="play" class="w-4 h-4"></i>
+                <span>START SEQUENCE</span>
+              </button>
+              <button id="btnStopSeq" onclick="triggerSequenceAction('stop')" class="bg-statusRed hover:bg-red-700 text-white px-5 py-2.5 rounded-md text-xs font-bold flex items-center gap-2 transition-colors">
+                <i data-lucide="square" class="w-4 h-4"></i>
+                <span>EMERGENCY STOP</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5-Stage Pipeline Progression Cards -->
+        <div class="sw-card p-6">
+          <div class="flex items-center justify-between mb-4 pb-3 border-b border-borderLight">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-textMuted">Sequence Status:</span>
+              <span id="seqStatusBadge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EFF6FF] text-primaryBlue border border-[#BFDBFE]">● Active</span>
+            </div>
+            <span id="seqStepTracker" class="text-xs text-[#9CA3AF]">Step 3 of 5</span>
+          </div>
+
+          <div id="distributionStepsGrid" class="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <!-- Injected via JS -->
+          </div>
+
+          <!-- Pipeline Schematic SVG / Diagram -->
+          <div class="mt-8 bg-[#F8FAFC] border border-borderLight rounded-lg p-6">
+            <h4 class="text-xs font-bold text-textMuted uppercase tracking-wider mb-4">Pipeline Flow Architecture</h4>
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-center font-mono text-xs">
+              <div class="p-3 bg-white border border-borderLight rounded shadow-xs w-full">
+                <p class="font-bold text-primaryBlue">Intake Reservoir</p>
+                <p class="text-[10px] text-textMuted">Level: 72.4%</p>
+              </div>
+              <i data-lucide="arrow-right" class="text-textMuted w-4 h-4 hidden md:block"></i>
+              <div class="p-3 bg-white border border-borderLight rounded shadow-xs w-full">
+                <p class="font-bold text-waterTeal">Treatment Unit</p>
+                <p class="text-[10px] text-textMuted">Gate 01 Feeding</p>
+              </div>
+              <i data-lucide="arrow-right" class="text-textMuted w-4 h-4 hidden md:block"></i>
+              <div class="p-3 bg-white border border-borderLight rounded shadow-xs w-full">
+                <p class="font-bold text-statusGreen">Primary Pump</p>
+                <p class="text-[10px] text-textMuted">Pressure: 2.7 bar</p>
+              </div>
+              <i data-lucide="arrow-right" class="text-textMuted w-4 h-4 hidden md:block"></i>
+              <div class="p-3 bg-white border border-borderLight rounded shadow-xs w-full">
+                <p class="font-bold text-textMain">Distribution Main</p>
+                <p class="text-[10px] text-textMuted">Flow: 18.4 L/min</p>
+              </div>
+              <i data-lucide="arrow-right" class="text-textMuted w-4 h-4 hidden md:block"></i>
+              <div class="p-3 bg-white border border-borderLight rounded shadow-xs w-full">
+                <p class="font-bold text-[#8B5CF6]">Sectors A, B, C</p>
+                <p class="text-[10px] text-textMuted">Active Delivery</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- 4. SENSORS VIEW -->
+      <!-- ============================================================= -->
+      <section id="view-sensors" class="tab-view space-y-6 hidden">
+        <div>
+          <h2 class="text-xl font-bold text-textMain">Hydraulic Sensors & Transducers</h2>
+          <p class="text-xs text-textMuted">Live readings, threshold parameters, and automated breach alerting.</p>
+        </div>
+
+        <div id="sensorsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Injected via JS -->
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- 5. ANALYTICS VIEW -->
+      <!-- ============================================================= -->
+      <section id="view-analytics" class="tab-view space-y-6 hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-textMain">Hydraulic Performance Analytics</h2>
+            <p class="text-xs text-textMuted">Pandas-powered volume aggregations, trends, and water conservation audit.</p>
+          </div>
+          <!-- Filter Tabs -->
+          <div class="inline-flex bg-white border border-borderLight p-1 rounded-md gap-1">
+            <button onclick="loadAnalyticsData('Today')" class="analytics-tab px-3 py-1 text-xs rounded font-medium text-textMuted">Today</button>
+            <button onclick="loadAnalyticsData('7D')" class="analytics-tab px-3 py-1 text-xs rounded font-bold bg-primaryBlue text-white">7 Days</button>
+            <button onclick="loadAnalyticsData('30D')" class="analytics-tab px-3 py-1 text-xs rounded font-medium text-textMuted">30 Days</button>
+          </div>
+        </div>
+
+        <!-- 4 Summary KPI Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="analyticsKpiGrid">
+          <!-- Injected via JS -->
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="sw-card p-5">
+            <h3 class="text-sm font-semibold text-textMain mb-3">Historical Water Level Drift</h3>
+            <div class="h-64 relative">
+              <canvas id="analyticsWlChart"></canvas>
+            </div>
+          </div>
+          <div class="sw-card p-5">
+            <h3 class="text-sm font-semibold text-textMain mb-3">Daily Gate Operations Activity</h3>
+            <div class="h-64 relative">
+              <canvas id="analyticsOpsChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- 6. HISTORY LOG VIEW -->
+      <!-- ============================================================= -->
+      <section id="view-history" class="tab-view space-y-6 hidden">
+        <!-- Toolbar -->
+        <div class="sw-card p-4 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3 flex-1 min-w-[280px]">
+            <div class="relative w-full max-w-xs">
+              <i data-lucide="search" class="w-4 h-4 text-textMuted absolute left-3 top-2.5"></i>
+              <input id="historySearchInput" oninput="debounceHistory()" type="text" placeholder="Search devices, actions, operators..." class="w-full pl-9 pr-3 py-1.5 text-xs border border-borderLight rounded-md bg-white focus:outline-primaryBlue">
+            </div>
+            <select id="historyTypeSelect" onchange="fetchHistoryData()" class="text-xs border border-borderLight rounded-md py-1.5 px-2 bg-white">
+              <option value="All">All Event Types</option>
+              <option value="Gate Operation">Gate Operation</option>
+              <option value="Sensor Alert">Sensor Alert</option>
+              <option value="Sequence">Sequence</option>
+              <option value="Auth">Auth</option>
+            </select>
+          </div>
+          <a href="/api/history/export" download class="bg-[#F3F4F6] hover:bg-borderLight border border-borderLight text-textMain text-xs font-semibold px-3 py-2 rounded-md flex items-center gap-2">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>Export CSV</span>
+          </a>
+        </div>
+
+        <!-- Table Container -->
+        <div class="sw-card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-[#F9FAFB] border-b border-borderLight text-textMuted uppercase font-semibold">
+                <tr>
+                  <th class="py-3 px-4">Timestamp</th>
+                  <th class="py-3 px-4">Event Type</th>
+                  <th class="py-3 px-4">Device</th>
+                  <th class="py-3 px-4">Action</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4">Operator</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody" class="divide-y divide-borderLight text-textMain">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- 7. SETTINGS VIEW -->
+      <!-- ============================================================= -->
+      <section id="view-settings" class="tab-view space-y-6 hidden">
+        <div>
+          <h2 class="text-xl font-bold text-textMain">System Settings & RBAC Demo</h2>
+          <p class="text-xs text-textMuted">Switch user authority levels to evaluate Role-Based Access Control in real-time.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Role Switcher Card -->
+          <div class="sw-card p-6 space-y-4">
+            <div class="flex items-center gap-2 text-primaryBlue">
+              <i data-lucide="shield-check" class="w-5 h-5"></i>
+              <h3 class="text-base font-bold text-textMain">Role-Based Access Control (RBAC)</h3>
+            </div>
+            <p class="text-xs text-textMuted">Select an authority tier below to test live gate lockouts and sequence authorization:</p>
+
+            <div class="space-y-2">
+              <label class="flex items-center gap-3 p-3 border border-borderLight rounded-lg cursor-pointer hover:bg-[#F9FAFB]">
+                <input type="radio" name="roleChoice" value="admin" onchange="changeActiveRole('admin')">
+                <div>
+                  <p class="text-xs font-bold text-textMain">ADMINISTRATOR</p>
+                  <p class="text-[11px] text-textMuted">Full system authorization, gate control, sequence control, and settings.</p>
+                </div>
+              </label>
+              <label class="flex items-center gap-3 p-3 border border-borderLight rounded-lg cursor-pointer hover:bg-[#F9FAFB]">
+                <input type="radio" name="roleChoice" value="operator" checked onchange="changeActiveRole('operator')">
+                <div>
+                  <p class="text-xs font-bold text-textMain">OPERATOR (Default)</p>
+                  <p class="text-[11px] text-textMuted">Can actuate physical gates, start/stop sequences, and acknowledge alerts.</p>
+                </div>
+              </label>
+              <label class="flex items-center gap-3 p-3 border border-borderLight rounded-lg cursor-pointer hover:bg-[#F9FAFB]">
+                <input type="radio" name="roleChoice" value="viewer" onchange="changeActiveRole('viewer')">
+                <div>
+                  <p class="text-xs font-bold text-textMain">VIEWER (Read-Only)</p>
+                  <p class="text-[11px] text-textMuted">Monitoring only. Gate buttons and sequence buttons are locked.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Architecture & Mode -->
+          <div class="sw-card p-6 space-y-4">
+            <div class="flex items-center gap-2 text-waterTeal">
+              <i data-lucide="cpu" class="w-5 h-5"></i>
+              <h3 class="text-base font-bold text-textMain">Deployment & Hardware Mode</h3>
+            </div>
+            <div class="space-y-3 text-xs">
+              <div class="flex justify-between py-2 border-b border-borderLight">
+                <span class="text-textMuted">Hosting Architecture:</span>
+                <span class="font-bold text-primaryBlue">Vercel Serverless Function</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-borderLight">
+                <span class="text-textMuted">Hardware Mode:</span>
+                <span class="font-bold text-textMain">Simulation (Hydraulic Drift)</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-borderLight">
+                <span class="text-textMuted">Database Provider:</span>
+                <span class="font-bold text-statusGreen">Supabase Dual-Mode Repository</span>
+              </div>
+              <div class="flex justify-between py-2">
+                <span class="text-textMuted">API Gateway:</span>
+                <a href="/docs" target="_blank" class="font-bold text-primaryBlue hover:underline">/api/dashboard →</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MOBILE BOTTOM NAVIGATION (< 640px) -->
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-borderLight flex items-center justify-around z-30 shadow-md">
+    <button onclick="switchTab('dashboard')" class="flex flex-col items-center justify-center p-2 text-primaryBlue active-mobile-tab" data-tab="dashboard">
+      <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5 font-bold">Dashboard</span>
+    </button>
+    <button onclick="switchTab('water-gates')" class="flex flex-col items-center justify-center p-2 text-textMuted" data-tab="water-gates">
+      <i data-lucide="door-closed" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5">Gates</span>
+    </button>
+    <button onclick="switchTab('distribution')" class="flex flex-col items-center justify-center p-2 text-textMuted" data-tab="distribution">
+      <i data-lucide="git-branch" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5">Pipeline</span>
+    </button>
+    <button onclick="switchTab('sensors')" class="flex flex-col items-center justify-center p-2 text-textMuted" data-tab="sensors">
+      <i data-lucide="activity" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5">Sensors</span>
+    </button>
+    <button onclick="switchTab('history')" class="flex flex-col items-center justify-center p-2 text-textMuted" data-tab="history">
+      <i data-lucide="history" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5">History</span>
+    </button>
+  </nav>
+
+  <!-- CONFIRMATION SAFETY MODAL -->
+  <div id="safetyModal" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center p-4">
+    <div class="sw-card p-6 max-w-md w-full shadow-xl bg-white space-y-4">
+      <div class="flex items-center gap-3">
+        <div id="modalIconWrap" class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-statusRed">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+        </div>
+        <h3 id="modalTitle" class="text-base font-bold text-textMain">Confirm Operation</h3>
+      </div>
+      <p id="modalMessage" class="text-xs text-textMuted leading-relaxed">Are you sure you want to execute this equipment operation?</p>
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeSafetyModal()" class="px-4 py-2 text-xs font-semibold rounded-md border border-borderLight hover:bg-[#F9FAFB]">Cancel</button>
+        <button id="modalConfirmBtn" class="px-4 py-2 text-xs font-bold text-white rounded-md bg-primaryBlue hover:bg-primaryHover">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SENSOR HISTORY MODAL -->
+  <div id="sensorModal" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center p-4">
+    <div class="sw-card p-6 max-w-2xl w-full shadow-xl bg-white space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="activity" class="w-5 h-5 text-primaryBlue"></i>
+          <h3 id="sensorModalTitle" class="text-base font-bold text-textMain">Sensor Telemetry</h3>
+        </div>
+        <button onclick="closeSensorModal()" class="text-textMuted hover:text-textMain"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="h-64 relative">
+        <canvas id="sensorModalChart"></canvas>
+      </div>
+      <div class="flex justify-between text-xs text-textMuted pt-2 border-t border-borderLight" id="sensorModalFooter">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2 max-w-sm pointer-events-none"></div>
+
+  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <script>
+    // State
+    let currentRole = 'operator';
+    let currentTab = 'dashboard';
+    let charts = {};
+    let activeWlRange = '24H';
+    let activeFlRange = '24H';
+    let confirmActionCallback = null;
+    let historyDebounceTimer = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      updateClock();
+      setInterval(updateClock, 1000);
+      initCharts();
+      fetchDashboardData();
+      setInterval(fetchDashboardData, 4000); // 4-second continuous telemetry update
+
+      // Mobile Menu button
+      document.getElementById('mobileMenuBtn').addEventListener('click', toggleMobileMenu);
+    });
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('liveClock').innerText = 'Last updated: ' + now.toLocaleTimeString();
+    }
+
+    function toggleMobileMenu() {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      sidebar.classList.toggle('-translate-x-full');
+      backdrop.classList.toggle('hidden');
+    }
+
+    function switchTab(tabId) {
+      currentTab = tabId;
+      document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+      const target = document.getElementById('view-' + tabId);
+      if (target) target.classList.remove('hidden');
+
+      // Update Nav active styling
+      document.querySelectorAll('.nav-item').forEach(el => {
+        if (el.dataset.tab === tabId) {
+          el.classList.add('bg-[#EBF8FF]', 'text-primaryBlue', 'font-semibold', 'border-l-3', 'border-primaryBlue');
+          el.classList.remove('text-[#4B5563]');
+        } else {
+          el.classList.remove('bg-[#EBF8FF]', 'text-primaryBlue', 'font-semibold', 'border-l-3', 'border-primaryBlue');
+          el.classList.add('text-[#4B5563]');
+        }
+      });
+
+      // Update Mobile nav active styling
+      document.querySelectorAll('nav button').forEach(el => {
+        if (el.dataset.tab === tabId) {
+          el.classList.add('text-primaryBlue', 'font-bold');
+          el.classList.remove('text-textMuted');
+        } else {
+          el.classList.remove('text-primaryBlue', 'font-bold');
+          el.classList.add('text-textMuted');
+        }
+      });
+
+      // Close mobile menu if open
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      if (!sidebar.classList.contains('-translate-x-full')) {
+        toggleMobileMenu();
+      }
+
+      // Title & Subtitle updates
+      const titles = {
+        'dashboard': ['Smart Water Distribution', 'System Overview & Telemetry'],
+        'water-gates': ['Water Gates Control', 'Actuator Status & Interlocks'],
+        'distribution': ['Distribution Pipeline', 'Sequential Water Routing'],
+        'sensors': ['Sensors Telemetry', 'Field Transmitters & Thresholds'],
+        'analytics': ['Hydraulic Analytics', 'Statistical Aggregation & Conservation'],
+        'history': ['Audit Event History', 'System Operations Chronicle'],
+        'settings': ['System Settings', 'Role Authorization & Configuration'],
+      };
+      if (titles[tabId]) {
+        document.getElementById('headerTitle').innerText = titles[tabId][0];
+        document.getElementById('headerSubtitle').innerText = titles[tabId][1];
+      }
+
+      // Tab specific loads
+      if (tabId === 'water-gates') fetchGatesData();
+      if (tabId === 'distribution') fetchDistributionData();
+      if (tabId === 'sensors') fetchSensorsData();
+      if (tabId === 'analytics') loadAnalyticsData('7D');
+      if (tabId === 'history') fetchHistoryData();
+      lucide.createIcons();
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC]',
+        warning: 'bg-[#FEF3C7] text-[#B45309] border-[#FCD34D]',
+        error: 'bg-[#FEE2E2] text-[#B91C1C] border-[#FCA5A5]',
+        info: 'bg-[#EFF6FF] text-primaryBlue border-[#BFDBFE]',
+      };
+      toast.className = `p-3 rounded-md shadow-md border text-xs font-semibold flex items-center gap-2 pointer-events-auto transition-all ${colors[type] || colors.info}`;
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => { toast.remove(); }, 3500);
+    }
+
+    // Role Switching
+    function changeActiveRole(newRole) {
+      currentRole = newRole;
+      document.getElementById('userRoleBadge').innerText = newRole.toUpperCase();
+      document.getElementById('gatesAuthorityPill').innerText = newRole.toUpperCase();
+      showToast(`Active authority switched to ${newRole.toUpperCase()}.`, 'success');
+      if (currentTab === 'water-gates') fetchGatesData();
+      if (currentTab === 'distribution') fetchDistributionData();
+    }
+
+    // Dashboard Telemetry Fetch
+    async function fetchDashboardData() {
+      try {
+        const res = await fetch('/api/dashboard');
+        const json = await res.json();
+        if (!json.success || !json.data) return;
+
+        const d = json.data;
+        // Update 4 cards
+        const sc = d.summary_cards;
+        document.getElementById('card-wl-val').innerText = sc.water_level.value.toFixed(1);
+        document.getElementById('card-wl-bar').style.width = sc.water_level.progress_pct + '%';
+        document.getElementById('card-fl-val').innerText = sc.flow_rate.value.toFixed(1);
+        document.getElementById('card-gates-val').innerText = sc.water_gates.value;
+        document.getElementById('card-pump-val').innerText = sc.pump.value;
+
+        // Alerts
+        renderDashboardAlerts(d.alerts);
+        // Gates Summary
+        renderDashboardGates(d.gates);
+      } catch (e) {
+        console.warn('Dashboard fetch error:', e);
+      }
+    }
+
+    function renderDashboardAlerts(alerts) {
+      const container = document.getElementById('dashboardAlertsList');
+      if (!alerts || alerts.length === 0) {
+        container.innerHTML = '<p class="text-xs text-textMuted py-3 text-center">No active alerts.</p>';
+        return;
+      }
+      container.innerHTML = alerts.map(a => {
+        const isCritical = a.severity === 'critical';
+        const isWarning = a.severity === 'warning';
+        const bg = isCritical ? 'bg-[#FEF2F2]' : isWarning ? 'bg-[#FFFBEB]' : 'bg-[#EFF6FF]';
+        const border = isCritical ? 'border-l-statusRed' : isWarning ? 'border-l-statusAmber' : 'border-l-primaryBlue';
+        const text = isCritical ? 'text-statusRed' : isWarning ? 'text-statusAmber' : 'text-primaryBlue';
+        return `
+          <div class="p-3 rounded-md border border-borderLight border-l-4 ${border} ${bg} flex items-start justify-between">
+            <div>
+              <p class="text-xs font-bold text-textMain">${a.title}</p>
+              <p class="text-[11px] text-[#4B5563] mt-0.5">${a.message}</p>
+            </div>
+            <button onclick="dismissAlert('${a.id}')" class="text-textMuted hover:text-textMain text-xs font-bold pl-2">&times;</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function dismissAlert(alertId) {
+      try {
+        await fetch(`/api/alerts/${alertId}/dismiss`, { method: 'POST' });
+        showToast('Alert dismissed.', 'info');
+        fetchDashboardData();
+      } catch (e) {
+        showToast('Failed to dismiss alert.', 'error');
+      }
+    }
+
+    function renderDashboardGates(gates) {
+      const container = document.getElementById('dashboardGatesGrid');
+      if (!gates) return;
+      container.innerHTML = gates.map(g => {
+        const isOpen = g.status === 'OPEN';
+        const badgeColor = isOpen ? 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC]' : 'bg-[#F3F4F6] text-[#4B5563] border-[#D1D5DB]';
+        return `
+          <div class="sw-card p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-sm font-bold text-textMain">${g.name}</h4>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${badgeColor}">${g.status}</span>
+            </div>
+            <p class="text-[11px] text-textMuted mb-3">${g.location}</p>
+            <div class="flex gap-2">
+              <button onclick="promptGateAction('${g.id}', 'OPEN', '${g.name}')" class="flex-1 py-1 text-xs font-semibold rounded bg-primaryBlue hover:bg-primaryHover text-white transition-colors" ${isOpen ? 'disabled class="opacity-50"' : ''}>OPEN</button>
+              <button onclick="promptGateAction('${g.id}', 'CLOSE', '${g.name}')" class="flex-1 py-1 text-xs font-semibold rounded bg-statusRed hover:bg-red-700 text-white transition-colors" ${!isOpen ? 'disabled class="opacity-50"' : ''}>CLOSE</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Safety Modal Logic
+    function promptGateAction(gateId, action, gateName) {
+      if (currentRole === 'viewer') {
+        showToast('Unauthorized: Viewer role cannot control physical gates.', 'error');
+        return;
+      }
+      const modal = document.getElementById('safetyModal');
+      const title = document.getElementById('modalTitle');
+      const msg = document.getElementById('modalMessage');
+      const btn = document.getElementById('modalConfirmBtn');
+
+      title.innerText = `Confirm: ${action} ${gateName}?`;
+      msg.innerText = `Are you sure you want to command ${gateName} to ${action}? Physical water diversion will actuate immediately.`;
+      btn.innerText = action === 'OPEN' ? 'Open Gate' : 'Close Gate';
+      btn.className = `px-4 py-2 text-xs font-bold text-white rounded-md ${action === 'OPEN' ? 'bg-primaryBlue hover:bg-primaryHover' : 'bg-statusRed hover:bg-red-700'}`;
+
+      confirmActionCallback = async () => {
+        closeSafetyModal();
+        try {
+          const res = await fetch(`/api/gates/${gateId}/${action.toLowerCase()}`, { method: 'POST' });
+          const j = await res.json();
+          if (j.success) {
+            showToast(`${gateName} ${action} command confirmed.`, 'success');
+            fetchDashboardData();
+            if (currentTab === 'water-gates') fetchGatesData();
+          } else {
+            showToast(j.message || 'Operation failed.', 'error');
+          }
+        } catch (e) {
+          showToast('Failed to contact gate controller.', 'error');
+        }
+      };
+
+      btn.onclick = confirmActionCallback;
+      modal.classList.remove('hidden');
+    }
+
+    function closeSafetyModal() {
+      document.getElementById('safetyModal').classList.add('hidden');
+    }
+
+    // Water Gates Full Page Fetch
+    async function fetchGatesData() {
+      try {
+        const res = await fetch('/api/gates');
+        const json = await res.json();
+        if (!json.success || !json.data) return;
+
+        const container = document.getElementById('fullGatesGrid');
+        container.innerHTML = json.data.map(g => {
+          const isOpen = g.status === 'OPEN';
+          const badgeColor = isOpen ? 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC]' : 'bg-[#F3F4F6] text-[#4B5563] border-[#D1D5DB]';
+          return `
+            <div class="sw-card p-6 flex flex-col justify-between space-y-4">
+              <div class="flex items-center justify-between border-b border-borderLight pb-3">
+                <div>
+                  <h3 class="text-base font-bold text-textMain">${g.name}</h3>
+                  <p class="text-xs text-textMuted">${g.location}</p>
+                </div>
+                <span class="px-2.5 py-1 rounded-full text-xs font-bold border ${badgeColor}">${g.status}</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs text-textMuted">
+                <div><span>Mode:</span> <strong class="text-primaryBlue">${g.mode}</strong></div>
+                <div><span>Connection:</span> <strong class="text-statusGreen">● Online</strong></div>
+              </div>
+              <div class="flex gap-3 pt-2">
+                <button onclick="promptGateAction('${g.id}', 'OPEN', '${g.name}')" class="flex-1 py-2 text-xs font-bold rounded bg-primaryBlue hover:bg-primaryHover text-white transition-colors" ${isOpen ? 'disabled class="opacity-50"' : ''}>OPEN</button>
+                <button onclick="promptGateAction('${g.id}', 'CLOSE', '${g.name}')" class="flex-1 py-2 text-xs font-bold rounded bg-statusRed hover:bg-red-700 text-white transition-colors" ${!isOpen ? 'disabled class="opacity-50"' : ''}>CLOSE</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        console.warn('Failed to load gates:', e);
+      }
+    }
+
+    // Distribution Sequence Fetch
+    async function fetchDistributionData() {
+      try {
+        const res = await fetch('/api/distribution/status');
+        const json = await res.json();
+        if (!json.success || !json.data) return;
+
+        const seq = json.data;
+        document.getElementById('seqStatusBadge').innerText = '● ' + seq.status;
+        document.getElementById('seqStepTracker').innerText = `Step ${seq.current_step_index + 1} of ${seq.steps.length}`;
+
+        const container = document.getElementById('distributionStepsGrid');
+        container.innerHTML = seq.steps.map(s => {
+          const isActive = s.status === 'ACTIVE';
+          const isComp = s.status === 'COMPLETED';
+          const borderStyle = isActive ? 'border-primaryBlue bg-[#EFF6FF] ring-2 ring-[#93C5FD]' : isComp ? 'border-statusGreen bg-[#F0FDF4]' : 'border-borderLight bg-white';
+          return `
+            <div class="p-4 rounded-lg border ${borderStyle} flex flex-col justify-between min-h-[130px] shadow-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-textMuted">0${s.step_order}</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${isActive ? 'bg-primaryBlue text-white' : isComp ? 'bg-statusGreen text-white' : 'bg-[#E5E7EB] text-textMuted'}">${s.status}</span>
+              </div>
+              <div class="my-2">
+                <p class="text-xs font-bold text-textMain">${s.step_name}</p>
+                ${s.gate_target ? `<p class="text-[10px] font-semibold text-primaryBlue mt-0.5">Actuator: ${s.gate_target}</p>` : ''}
+              </div>
+              <p class="text-[10px] text-textMuted leading-tight">${s.notes || ''}</p>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        console.warn('Distribution fetch failed:', e);
+      }
+    }
+
+    async function triggerSequenceAction(action) {
+      if (currentRole === 'viewer') {
+        showToast('Unauthorized: Viewers cannot execute distribution sequences.', 'error');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/distribution/${action}`, { method: 'POST' });
+        const j = await res.json();
+        showToast(j.message || `Sequence ${action} dispatched.`, 'success');
+        fetchDistributionData();
+      } catch (e) {
+        showToast('Failed to trigger sequence.', 'error');
+      }
+    }
+
+    // Sensors Page Fetch
+    async function fetchSensorsData() {
+      try {
+        const res = await fetch('/api/sensors');
+        const json = await res.json();
+        if (!json.success || !json.data) return;
+
+        const container = document.getElementById('sensorsGrid');
+        container.innerHTML = json.data.map(s => {
+          return `
+            <div class="sw-card p-5 flex flex-col justify-between space-y-3">
+              <div class="flex items-center justify-between">
+                <h4 class="text-sm font-bold text-textMain">${s.name}</h4>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC]">● Online</span>
+              </div>
+              <div class="flex items-baseline gap-1 my-2">
+                <span class="text-3xl font-bold text-textMain">${s.last_reading.toFixed(1)}</span>
+                <span class="text-sm font-semibold text-textMuted">${s.unit}</span>
+              </div>
+              <div class="pt-2 border-t border-borderLight flex items-center justify-between text-xs text-textMuted">
+                <span>Threshold: ${s.minimum_threshold} - ${s.maximum_threshold} ${s.unit}</span>
+                <button onclick="openSensorModal('${s.id}', '${s.name}', '${s.unit}', ${s.minimum_threshold}, ${s.maximum_threshold})" class="text-primaryBlue font-semibold hover:underline">History →</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        console.warn('Sensors fetch failed:', e);
+      }
+    }
+
+    async function openSensorModal(sensorId, name, unit, minT, maxT) {
+      document.getElementById('sensorModalTitle').innerText = `${name} History`;
+      document.getElementById('sensorModalFooter').innerHTML = `<span>Min: ${minT} ${unit}</span><span>Max: ${maxT} ${unit}</span>`;
+      document.getElementById('sensorModal').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/sensors/${sensorId}/history`);
+        const j = await res.json();
+        const pts = j.data || [];
+        renderSensorModalChart(pts, `${name} (${unit})`);
+      } catch (e) {
+        console.warn('Sensor history error:', e);
+      }
+    }
+
+    function closeSensorModal() {
+      document.getElementById('sensorModal').classList.add('hidden');
+    }
+
+    // Analytics Data Fetch
+    async function loadAnalyticsData(range) {
+      document.querySelectorAll('.analytics-tab').forEach(b => {
+        if (b.innerText.includes(range)) {
+          b.className = 'analytics-tab px-3 py-1 text-xs rounded font-bold bg-primaryBlue text-white';
+        } else {
+          b.className = 'analytics-tab px-3 py-1 text-xs rounded font-medium text-textMuted hover:text-textMain';
+        }
+      });
+
+      try {
+        const res = await fetch(`/api/analytics?range=${range}`);
+        const json = await res.json();
+        if (!json.success || !json.data) return;
+
+        const d = json.data;
+        const s = d.summary;
+        const kpiGrid = document.getElementById('analyticsKpiGrid');
+        kpiGrid.innerHTML = `
+          <div class="sw-card p-4 text-center">
+            <p class="text-xs text-textMuted">Average Water Level</p>
+            <p class="text-2xl font-bold text-primaryBlue mt-1">${s.avg_water_level}%</p>
+          </div>
+          <div class="sw-card p-4 text-center">
+            <p class="text-xs text-textMuted">Peak Flow Rate</p>
+            <p class="text-2xl font-bold text-waterTeal mt-1">${s.max_flow_rate} L/min</p>
+          </div>
+          <div class="sw-card p-4 text-center">
+            <p class="text-xs text-textMuted">Total Gate Actions</p>
+            <p class="text-2xl font-bold text-textMain mt-1">${s.total_gate_operations}</p>
+          </div>
+          <div class="sw-card p-4 text-center">
+            <p class="text-xs text-textMuted">Water Loss Estimate</p>
+            <p class="text-2xl font-bold text-statusGreen mt-1">${s.estimated_water_loss_liters} L</p>
+          </div>
+        `;
+
+        renderAnalyticsCharts(d.water_level_trend, d.gate_operations_daily);
+      } catch (e) {
+        console.warn('Analytics fetch error:', e);
+      }
+    }
+
+    // History Log Fetch
+    async function fetchHistoryData() {
+      const search = document.getElementById('historySearchInput').value;
+      const type = document.getElementById('historyTypeSelect').value;
+      const url = `/api/history?search=${encodeURIComponent(search)}${type !== 'All' ? '&event_type=' + encodeURIComponent(type) : ''}`;
+
+      try {
+        const res = await fetch(url);
+        const j = await res.json();
+        const tbody = document.getElementById('historyTableBody');
+        if (!j.success || !j.data.items || j.data.items.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-textMuted">No matching events.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = j.data.items.map(e => `
+          <tr class="hover:bg-[#F9FAFB] transition-colors">
+            <td class="py-3 px-4 font-mono text-textMuted">${e.timestamp}</td>
+            <td class="py-3 px-4 font-semibold">${e.event_type}</td>
+            <td class="py-3 px-4 text-primaryBlue font-medium">${e.device}</td>
+            <td class="py-3 px-4 font-mono">${e.action}</td>
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#DCFCE7] text-[#15803D]">${e.status}</span></td>
+            <td class="py-3 px-4 text-textMuted">${e.operator}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.warn('History fetch error:', e);
+      }
+    }
+
+    function debounceHistory() {
+      clearTimeout(historyDebounceTimer);
+      historyDebounceTimer = setTimeout(fetchHistoryData, 300);
+    }
+
+    // Chart.js Initializations
+    function initCharts() {
+      const ctxWl = document.getElementById('waterLevelChart').getContext('2d');
+      charts.wl = new Chart(ctxWl, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Water Level (%)', data: [], borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,0.06)', fill: true, tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 20, max: 100 } } }
+      });
+
+      const ctxFl = document.getElementById('flowRateChart').getContext('2d');
+      charts.fl = new Chart(ctxFl, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Flow Rate (L/min)', data: [], borderColor: '#06B6D4', backgroundColor: 'rgba(6,182,212,0.06)', fill: true, tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      updateChartData('wl', '24H');
+      updateChartData('fl', '24H');
+    }
+
+    async function setChartRange(chartKey, range) {
+      if (chartKey === 'wl') activeWlRange = range;
+      if (chartKey === 'fl') activeFlRange = range;
+
+      document.querySelectorAll(`.${chartKey}-tab`).forEach(b => {
+        if (b.innerText === range) {
+          b.className = `${chartKey}-tab px-2.5 py-1 text-xs rounded font-semibold bg-white text-primaryBlue shadow-xs`;
+        } else {
+          b.className = `${chartKey}-tab px-2.5 py-1 text-xs rounded font-medium text-textMuted hover:text-textMain`;
+        }
+      });
+      updateChartData(chartKey, range);
+    }
+
+    async function updateChartData(chartKey, range) {
+      const endpoint = chartKey === 'wl' ? `/api/dashboard/water-level?range=${range}` : `/api/dashboard/flow?range=${range}`;
+      try {
+        const res = await fetch(endpoint);
+        const j = await res.json();
+        const pts = j.data || [];
+        const chart = charts[chartKey];
+        chart.data.labels = pts.map(p => p.timestamp);
+        chart.data.datasets[0].data = pts.map(p => p.value);
+        chart.update();
+      } catch (e) {
+        console.warn('Failed to update chart:', e);
+      }
+    }
+
+    function renderSensorModalChart(points, label) {
+      const ctx = document.getElementById('sensorModalChart').getContext('2d');
+      if (charts.modal) charts.modal.destroy();
+      charts.modal = new Chart(ctx, {
+        type: 'line',
+        data: { labels: points.map(p => p.timestamp), datasets: [{ label: label, data: points.map(p => p.value), borderColor: '#2563EB', fill: true, backgroundColor: 'rgba(37,99,235,0.08)', tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+
+    function renderAnalyticsCharts(wlPts, ops) {
+      const ctxWl = document.getElementById('analyticsWlChart').getContext('2d');
+      if (charts.anWl) charts.anWl.destroy();
+      charts.anWl = new Chart(ctxWl, {
+        type: 'line',
+        data: { labels: wlPts.map(p => p.timestamp), datasets: [{ label: 'Water Level', data: wlPts.map(p => p.value), borderColor: '#2563EB', fill: true, backgroundColor: 'rgba(37,99,235,0.06)', tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      const ctxOps = document.getElementById('analyticsOpsChart').getContext('2d');
+      if (charts.anOps) charts.anOps.destroy();
+      charts.anOps = new Chart(ctxOps, {
+        type: 'bar',
+        data: { labels: ops.map(o => o.date), datasets: [{ label: 'Gate Operations', data: ops.map(o => o.count), backgroundColor: '#2563EB' }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+  </script>
+</body>
+</html>
