@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  smart-water:
+    build: .
+    container_name: smart_water_app
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - HARDWARE_MODE=simulation
+      - PORT=8000
+      - HOST=0.0.0.0
+    restart: unless-stopped

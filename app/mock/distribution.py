@@ -1,0 +1,57 @@
+from datetime import datetime
+
+INITIAL_DISTRIBUTION = {
+    "id": "seq-main-01",
+    "name": "Intake-to-Sector Sequence",
+    "status": "WAITING",
+    "current_step_index": 0,
+    "started_at": None,
+    "completed_at": None,
+    "steps": [
+        {
+            "id": "step-1",
+            "step_order": 1,
+            "step_name": "Intake Reservoir",
+            "gate_target": "GATE_01",
+            "target_flow": 20.0,
+            "status": "WAITING",
+            "notes": "Verify intake level > 50% and engage intake valve.",
+        },
+        {
+            "id": "step-2",
+            "step_order": 2,
+            "step_name": "Treatment Unit",
+            "gate_target": "GATE_02",
+            "target_flow": 18.0,
+            "status": "WAITING",
+            "notes": "Circulate water through filtration and chemical purification.",
+        },
+        {
+            "id": "step-3",
+            "step_order": 3,
+            "step_name": "Primary Pump",
+            "gate_target": None,
+            "target_flow": 18.4,
+            "status": "WAITING",
+            "notes": "Spin up high-pressure booster pump to 2.8 bar.",
+        },
+        {
+            "id": "step-4",
+            "step_order": 4,
+            "step_name": "Distribution Main",
+            "gate_target": "GATE_03",
+            "target_flow": 18.0,
+            "status": "WAITING",
+            "notes": "Charge primary trunk conduit line.",
+        },
+        {
+            "id": "step-5",
+            "step_order": 5,
+            "step_name": "Sector Distribution (A / B / C)",
+            "gate_target": "GATE_04",
+            "target_flow": 12.0,
+            "status": "WAITING",
+            "notes": "Release water into scheduled sectors A, B, and C.",
+        },
+    ],
+}
