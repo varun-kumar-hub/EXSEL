@@ -97,12 +97,20 @@ class SensorRepository:
         client = get_db_client()
         if client:
             try:
-                client.table("sensors").update({
-                    "last_reading": value,
+                # Upsert sensor record
+                client.table("sensors").upsert({
+                    "id": sensor_id,
+                    "name": sensor.name if sensor else sensor_id,
+                    "sensor_type": sensor.sensor_type if sensor else "generic",
+                    "unit": sensor.unit if sensor else "",
+                    "minimum_threshold": sensor.minimum_threshold if sensor else 0.0,
+                    "maximum_threshold": sensor.maximum_threshold if sensor else 100.0,
                     "status": status,
+                    "last_reading": value,
                     "last_updated_at": datetime.utcnow().isoformat(),
-                }).eq("id", sensor_id).execute()
+                }).execute()
 
+                # Insert telemetry reading point
                 client.table("sensor_readings").insert({
                     "sensor_id": sensor_id,
                     "value": value,

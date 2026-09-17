@@ -252,7 +252,8 @@ VALUES
     ('SENS_FLW_01', 'Main Line Flow Meter', 'flow', 'L/min', 5.0, 30.0, 'ONLINE', 18.4, NOW()),
     ('SENS_PRS_01', 'Pressure Sensor P1', 'pressure', 'bar', 1.5, 4.0, 'ONLINE', 2.7, NOW()),
     ('SENS_FLW_02', 'Secondary Sector Flow', 'flow', 'L/min', 2.0, 15.0, 'ONLINE', 8.9, NOW()),
-    ('SENS_WQL_01', 'Water Quality (pH / Turbidity)', 'quality', 'pH / NTU', 6.5, 8.5, 'ONLINE', 7.2, NOW())
+    ('SENS_WQL_01', 'Water Quality (pH)', 'ph', 'pH', 6.5, 8.5, 'ONLINE', 7.2, NOW()),
+    ('SENS_WQL_02', 'Water Quality (Turbidity)', 'turbidity', 'NTU', 0.5, 5.0, 'ONLINE', 2.4, NOW())
 ON CONFLICT (id) DO UPDATE SET
     last_reading = EXCLUDED.last_reading,
     status = EXCLUDED.status;
